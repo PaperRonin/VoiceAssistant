@@ -1,18 +1,16 @@
-import {Convert, Config} from "./settingsParser"
-import * as fs from "fs";
+const SETTINGS_FILE = './config.json';
 
-const SETTINGS_FILE = 'settings.json';
+export interface Config {
+    discord_token: string;
+    text?: any;
+    prefix: string;
+}
 
-class Settings {
+export class Settings {
     config: Config;
 
     constructor() {
-        if (fs.existsSync(SETTINGS_FILE)) {
-            this.config = Convert.toConfig(SETTINGS_FILE);
-        }
-        if (process.env.DISCORD_TOK) {
-            this.config.discord_token = process.env.DISCORD_TOKEN;
-        }
+        this.config = require(SETTINGS_FILE) as Config;
 
         if (!this.config.discord_token)
             throw 'invalid or missing DISCORD_TOK'

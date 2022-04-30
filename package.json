@@ -1,28 +1,33 @@
 {
   "dependencies": {
-    "npm": "^8.3.0",
     "@discordjs/voice": "^0.7.5",
     "@mapbox/node-pre-gyp": "^1.0.8",
-    "discord.js": "^13.5.0",
-    "node-witai-speech": "^1.0.2",
     "axios": "^0.24.0",
-    "underscore": "^1.13.2",
-    "vosk": "^0.3.32",
-    "ts-node-dev": "^1.1.8",
-    "prettier": "^2.5.1",
+    "discord.js": "^13.5.0",
+    "gulp": "^4.0.2",
+    "gulp-typescript": "5.0.1",
     "husky": "^7.0.4",
     "lint-staged": "^12.1.5",
-    "loglevel": "^1.8.0"
+    "loglevel": "^1.8.0",
+    "node-witai-speech": "^1.0.2",
+    "npm": "^8.3.0",
+    "prettier": "^2.5.1",
+    "ts-node-dev": "^1.1.8",
+    "underscore": "^1.13.2",
+    "vosk": "^0.3.32"
   },
   "description": "",
   "main": "dist/index.js",
   "name": "voice-assistant",
   "scripts": {
-    "start": "node ./dist/index.js"
+    "dev": "gulp && node ./dist/index.js"
   },
   "version": "1.0.0",
   "types": "dist/index.d.ts",
   "files": [
     "/dist"
-  ]
+  ],
+  "devDependencies": {
+    "gulp-clean": "^0.4.0"
+  }
 }

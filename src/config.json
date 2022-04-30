@@ -1,0 +1,21 @@
+{
+  "discord_token": "OTA5MzkxMzU4MTAyNDk5MzI4.YZDmsw.hTrjXhWa0h-0tTty9OXWUk_Q3t8",
+  "text": {
+    "greetings": "hi!"
+  },
+  "commands": [
+    {
+      "name": "ping",
+      "function": "ping",
+      "callName": "ping",
+      "voiceCallName": "ping"
+    },
+    {
+      "name": "",
+      "function": "",
+      "callName": "",
+      "voiceCallName": ""
+    }
+  ],
+  "prefix": "="
+}

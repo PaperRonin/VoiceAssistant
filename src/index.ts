@@ -1,19 +1,33 @@
-import {Config} from "./settingsParser";
+import log from "loglevel";
 
-const log = require('loglevel');
 const util = require('util');
 const Discord = require('discord.js');
-const Settings = require('settings');
-const VoiceProcessor = require('voice_processing');
-const Commands = require('commands')
 
-const discordClient = new Discord.Client();
+const {Settings} = require('./settings');
+const {VoiceProcessor} = require('./voice_processing');
+const Commands = require('./commands')
+
+const discordClient = new Discord.Client({
+    intents: [
+        Discord.Intents.FLAGS.GUILDS,
+        Discord.Intents.FLAGS.GUILD_MEMBERS,
+        Discord.Intents.FLAGS.GUILD_BANS,
+        Discord.Intents.FLAGS.GUILD_EMOJIS_AND_STICKERS,
+        Discord.Intents.FLAGS.GUILD_VOICE_STATES,
+        Discord.Intents.FLAGS.GUILD_MESSAGES,
+        Discord.Intents.FLAGS.GUILD_MESSAGE_REACTIONS,
+        Discord.Intents.FLAGS.GUILD_MESSAGE_TYPING
+    ]
+});
 
 const config = new Settings().config;
 
 function _init() {
+    log.setLevel(log.levels.INFO)
+
     let voiceProcessor = new VoiceProcessor();
 
+    log.info(`loging in...`)
     discordClient.login(config.discord_token).catch(log.error);
 
     discordClient.on('ready', () => {
@@ -24,19 +38,19 @@ function _init() {
     Commands.discordClient = discordClient;
     Commands.config = config;
     Commands.voiceProcessor = voiceProcessor;
-
-    discordClient.on('message', async (msg) => {
+    
+    discordClient.on('messageCreate', async (msg) => {
         try {
             if (!('guild' in msg) || !msg.guild) return; // prevent private messages to bot
             if (!msg.content.startsWith(config.prefix)) return
 
-            let command: string = msg.content.replace(config.prefix).split()[0].trim().toLowerCase();
+            let command: string = msg.content.replace(config.prefix, '').split()[0].trim().toLowerCase();
+            log.info(`recieved message from channel: '${msg.guild.name}' with command: '${command}'`)
 
-            config.commands.forEach(c => {
-                if (c.callName === command && Commands[command]) {
-                    Commands[command](msg).catch(log.error);
-                }
-            });
+            if (Commands[command]) {
+                log.info(`found command: ${command}`)
+                Commands[command](msg).catch(log.error);
+            }
 
         } catch (e) {
             log.error('discordClient message: ' + e)

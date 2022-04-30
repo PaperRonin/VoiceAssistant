@@ -2,21 +2,20 @@ const log = require('loglevel');
 const fs = require('fs');
 const vosk = require('vosk');
 
-const voskFolder = "vosk_models";
+const voskFolder = "./vosk_models";
 
-class VoiceProcessor {
+export class VoiceProcessor {
     private recognizers: any[];
     private guildMap: Map<any, any>;
 
     constructor() {
         let files: string[];
-
+        this.recognizers = [];
+        
         vosk.setLogLevel(-1);
         // MODELS: https://alphacephei.com/vosk/models
-
-        fs.readdir(voskFolder, (err, fs) => {
-            files = fs;
-        });
+        log.info(`reading language folders from ${fs.realpathSync(voskFolder)}`)
+        files = fs.readdirSync(voskFolder);
 
         files.forEach(file => {
             this.recognizers.push({
@@ -27,6 +26,7 @@ class VoiceProcessor {
             });
         });
 
+        log.info(`language recognizers loaded`)
         // download new models if you need
         // dev reference: https://github.com/alphacep/vosk-api/blob/master/nodejs/index.js
     }
@@ -38,7 +38,7 @@ class VoiceProcessor {
         log.info('vosk:', ret)
         return ret;
     }
-    
+
     voice_connection_hook(voiceConnection, guildId) {
         voiceConnection.on('speaking', async (user, speaking) => {
             if (speaking.bitfield == 0 || user.bot) {
@@ -67,11 +67,10 @@ class VoiceProcessor {
                 try {
                     let new_buffer = await stereo_to_mono(buffer)
                     let out = await this.transcribe(new_buffer, guildId);
-                    if (out != null)
-                        if (out && out.length) {
-                            let val = this.guildMap.get(guildId);
-                            val.text_Channel.send(user.username + ': ' + out)
-                        }
+                    if (out && out.length) {
+                        let val = this.guildMap.get(guildId);
+                        val.text_Channel.send(user.username + ': ' + out)
+                    }
                 } catch (e) {
                     log.error('tmpraw rename: ' + e)
                 }
