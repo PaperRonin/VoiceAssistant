@@ -3,6 +3,9 @@
   "text": {
     "greetings": "hi!"
   },
+
+  "prefix": "=",
+  "language": "ru",
   "commands": [
     {
       "name": "ping",
@@ -16,6 +19,5 @@
       "callName": "",
       "voiceCallName": ""
     }
-  ],
-  "prefix": "="
+  ]
 }

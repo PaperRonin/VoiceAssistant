@@ -1,12 +1,15 @@
+import {Config} from "./settings";
+
 const log = require('loglevel');
 const fs = require('fs');
 const vosk = require('vosk');
+import {VoiceConnection} from "@discordjs/voice";
 
 const voskFolder = "./vosk_models";
+let config: Config;
 
 export class VoiceProcessor {
     private recognizers: any[];
-    private guildMap: Map<any, any>;
 
     constructor() {
         let files: string[];
@@ -17,6 +20,7 @@ export class VoiceProcessor {
         log.info(`reading language folders from ${fs.realpathSync(voskFolder)}`)
         files = fs.readdirSync(voskFolder);
 
+        log.info(`loading language recognizers`)
         files.forEach(file => {
             this.recognizers.push({
                 file: new vosk.Recognizer({
@@ -31,53 +35,53 @@ export class VoiceProcessor {
         // dev reference: https://github.com/alphacep/vosk-api/blob/master/nodejs/index.js
     }
 
-    async transcribe(buffer, mapKey) {
-        let val = this.guildMap.get(mapKey);
-        this.recognizers[val.selected_lang].acceptWaveform(buffer);
-        let ret = this.recognizers[val.selected_lang].result().text;
+    async transcribe(buffer) {
+        this.recognizers[config.language].acceptWaveform(buffer);
+        let ret = this.recognizers[config.language].result().text;
         log.info('vosk:', ret)
         return ret;
     }
 
-    voice_connection_hook(voiceConnection, guildId) {
-        voiceConnection.on('speaking', async (user, speaking) => {
-            if (speaking.bitfield == 0 || user.bot) {
-                return
-            }
-            log.info(`I'm listening to ${user.username}`)
-            // this creates a 16-bit signed PCM, stereo 48KHz stream
-            const audioStream = voiceConnection.receiver.createStream(user, {mode: 'pcm'})
-            audioStream.on('error', (e) => {
-                log.error('audioStream: ' + e)
-            });
-            let buffer: any = [];
-            audioStream.on('data', (data) => {
-                buffer.push(data)
-            })
-            audioStream.on('end', async () => {
-                buffer = Buffer.concat(buffer)
-                const duration = buffer.length / 48000 / 4;
-                log.info("duration: " + duration)
+    voiceConnection_hook(voiceConnection: VoiceConnection, textChannel) {
+        try {
+            voiceConnection.receiver.subscriptions.forEach((audioStream, userssrc) => {
+                let userId = userssrc
+                log.info(`I'm listening to ${userId}`)
+                audioStream.on('error', (e) => {
+                    log.error('audioStream: ' + e)
+                });
+                let buffer: any =  [];
+                audioStream.on('data', (data) => {
+                    buffer.push(data)
+                    voiceConnection.playOpusPacket(data)
+                })
+                audioStream.on('end', async () => {
+                    log.info(`Stoped listening to ${userId}`)
+                    buffer = Buffer.concat(buffer)
+                    const duration = buffer.length / 48000 / 4;
+                    log.info("duration: " + duration)
 
-                if (duration < 1.0 || duration > 19) { // 20 seconds max dur
-                    log.info("TOO SHORT / TOO LONG; SKPPING")
-                    return;
-                }
-
-                try {
-                    let new_buffer = await stereo_to_mono(buffer)
-                    let out = await this.transcribe(new_buffer, guildId);
-                    if (out && out.length) {
-                        let val = this.guildMap.get(guildId);
-                        val.text_Channel.send(user.username + ': ' + out)
+                    if (duration < 1.0 || duration > 19) { // 20 seconds max dur
+                        log.info("TOO SHORT / TOO LONG; SKPPING")
+                        return;
                     }
-                } catch (e) {
-                    log.error('tmpraw rename: ' + e)
-                }
+
+                    try {
+                        let new_buffer = await stereo_to_mono(buffer)
+                        let out = await this.transcribe(new_buffer);
+                        if (out && out.length) {
+                            textChannel.send(userId + ': ' + out)
+                        }
+                    } catch (e) {
+                        log.error('tmpraw rename: ' + e)
+                    }
 
 
+                })
             })
-        })
+        } catch (e) {
+            log.error(e);
+        }
     }
 }
 

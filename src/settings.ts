@@ -4,6 +4,7 @@ export interface Config {
     discord_token: string;
     text?: any;
     prefix: string;
+    language: string;
 }
 
 export class Settings {

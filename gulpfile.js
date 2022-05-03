@@ -1,34 +1,40 @@
-const gulp = require('gulp');
-const ts = require("gulp-typescript");
-const clean = require('gulp-clean');
-
+const gulp = require('gulp')
+const ts = require("gulp-typescript")
+const gulpClean = require('gulp-clean')
+const shell = require('gulp-shell')
 
 const paths = {
     tsConfig: {
         src: './tsconfig.json',
     },
+    srcFiles: 'src/**/*.ts',
     config: {
         src: 'src/config.json',
         dest: 'dist/'
     }
 };
 
-const tsProject = ts.createProject(paths.tsConfig.src);
+const tsProject = ts.createProject(paths.tsConfig.src)
 
-gulp.task('clean', function () {
-    return gulp.src('dist', {read: false})
-        .pipe(clean());
-});
+function clean() {
+    return gulp.src(paths.config.dest, {read: false})
+        .pipe(gulpClean());
+}
 
-gulp.task('copy-settings', function () {
+function copySettings() {
     return gulp.src(paths.config.src)
-        .pipe(gulp.dest(paths.config.dest));
-});
+        .pipe(gulp.dest(paths.config.dest))
+}
 
-gulp.task('build', function () {
+function build() {
     return tsProject.src()
         .pipe(tsProject())
-        .pipe(gulp.dest("dist"));
-});
+        .pipe(gulp.dest(paths.config.dest))
+}
 
-gulp.task('default', gulp.series('build', 'copy-settings'));
+function watch() {
+    gulp.watch(paths.srcFiles, build)
+}
+
+exports.default = gulp.series(build, copySettings)
+exports.dev = gulp.series(build, copySettings, shell.task(['start node ./dist/index.js']), watch)

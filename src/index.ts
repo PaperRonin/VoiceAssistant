@@ -25,6 +25,10 @@ const config = new Settings().config;
 function _init() {
     log.setLevel(log.levels.INFO)
 
+    process.on('uncaughtException', function (err) {
+        log.error('Caught exception: ', err)
+        setTimeout( () => {},5000)
+    });
     let voiceProcessor = new VoiceProcessor();
 
     log.info(`loging in...`)
@@ -39,6 +43,10 @@ function _init() {
     Commands.config = config;
     Commands.voiceProcessor = voiceProcessor;
     
+    listenMessages()
+
+}
+function listenMessages() {
     discordClient.on('messageCreate', async (msg) => {
         try {
             if (!('guild' in msg) || !msg.guild) return; // prevent private messages to bot
@@ -57,10 +65,9 @@ function _init() {
             msg.reply('Error: Something went wrong, try again or contact the developers if this keeps happening.');
         }
     })
-
 }
 
-_init();
+_init()
 
 
 

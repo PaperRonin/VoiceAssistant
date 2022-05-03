@@ -1,20 +1,30 @@
 import {Config} from "./settings";
 import {VoiceProcessor} from "./voice_processing";
-const log = require('loglevel');
-const { joinVoiceChannel } = require('@discordjs/voice');
+import * as discordjsVoice from "@discordjs/voice";
+import {VoiceConnection} from "@discordjs/voice";
 
-let guildMap: Map<any, any>;
+const log = require('loglevel');
+
 let discordClient: any;
 let config: Config;
-let voiceProcessor: VoiceProcessor; 
+let voiceProcessor: VoiceProcessor;
 
 export async function help(msg) {
+    let properties = new Array<string>()
+    let currentObj = this
+    do {
+        Object.getOwnPropertyNames(currentObj).map(item => properties.push(item))
+    } while ((currentObj = Object.getPrototypeOf(currentObj)))
+    return properties .filter((item: any) => {
+        return typeof currentObj[item] === 'function';
+    })
+
     let out = '**COMMANDS:**\n'
     out += '```'
     this.forEach(item => {
         out += `${item}\n`;
     });
-    out += '```'
+    out += '```' 
     return out;
 }
 
@@ -22,63 +32,60 @@ export async function join(msg) {
     try {
         if (!msg.member.voice.channel) {
             msg.reply('Error: please join a voice channel first.')
-            return 
+            return
         }
-        if (!this.guildMap.has(msg.guild.id)) {
-            let voice_Connection = joinVoiceChannel({
-                channelId: msg.member.voice.channel.id,
-                guildId: msg.guild.id,
-                adapterCreator: msg.guild.voiceAdapterCreator,
-            });
-            
-            //let voice_Connection = await this.discordClient.getVoiceConnection(msg.guild.id);
-            voice_Connection.playOpusPacket(Buffer.from([0xf8, 0xff, 0xfe]));
-            this.guildMap.set(msg.guild.id, {
-                'voice_Channel': msg.member.voice.channelID,
-                'voice_Connection': voice_Connection,
-                'selected_lang': 'en',
-                'debug': false,
-            });
-            this.voiceProcessor.voice_connection_hook(voice_Connection, msg.guild.id);
-            voice_Connection.on('disconnect', async (e) => {
-                if (e) log.error(e);
-                this.guildMap.delete(msg.guild.id);
-            })
-            msg.reply('connected!')
-        } else
-            msg.reply('Already connected')
+        let voiceChannel: VoiceConnection = discordjsVoice.getVoiceConnection(msg.guild.id);
         
+        if (voiceChannel && voiceChannel.joinConfig.channelId === msg.member.voice.channelId) {
+            msg.reply('Already connected')
+        }
+        
+        let voiceConnection = discordjsVoice.joinVoiceChannel({
+            channelId: msg.member.voice.channel.id,
+            guildId: msg.guild.id,
+            adapterCreator: msg.guild.voiceAdapterCreator,
+            selfDeaf: false,
+            debug: true
+        });
+        
+        msg.member.voice.channel.members.forEach(member => voiceConnection.receiver.subscribe(member.id))
+        
+        voiceConnection.playOpusPacket(Buffer.from([0xf8, 0xff, 0xfe]));
+
+        this.voiceProcessor.voiceConnection_hook(voiceConnection, msg.channel);
+
+        voiceConnection.on(discordjsVoice.VoiceConnectionStatus.Disconnected, async (e) => {
+            if (e) log.error(e);
+            try {
+                await Promise.race([
+                    discordjsVoice.entersState(voiceConnection, discordjsVoice.VoiceConnectionStatus.Signalling, 5_000),
+                    discordjsVoice.entersState(voiceConnection, discordjsVoice.VoiceConnectionStatus.Connecting, 5_000),
+                ]);
+                // Seems to be reconnecting to a new channel - ignore disconnect
+            } catch (error) {
+                // Seems to be a real disconnect which SHOULDN'T be recovered from
+                voiceConnection.destroy();
+            }
+        })
+        msg.reply('connected!')
     } catch (e) {
         log.error('connect: ' + e)
         msg.reply('Error: unable to join your voice channel.');
-        throw e;
     }
 }
 
 
 export async function leave(msg) {
-    if (this.guildMap.has(msg.guild.id)) {
-        let val = this.guildMap.get(msg.guild.id);
-        if (val.voice_Channel) val.voice_Channel.leave()
-        if (val.voice_Connection) val.voice_Connection.disconnect()
-        this.guildMap.delete(msg.guild.id)
-        msg.reply("Disconnected.")
-    } else {
+    let voiceChannel: VoiceConnection = discordjsVoice.getVoiceConnection(msg.guild.id);
+    if (!voiceChannel) {
         msg.reply("Cannot leave because not connected.")
+        return
     }
-}
 
-export async function debug(msg) {
-    log.info('toggling debug mode')
-    let val = this.guildMap.get(msg.guild.id);
-    val.debug = !val.debug;
+    voiceChannel.disconnect()
+    msg.reply("Disconnected.")
 }
 
 export async function ping(msg) {
     msg.reply('pong')
-}
-
-export async function changeLanguage(msg) {
-    let val = this.guildMap.get(msg.guild.id);
-    val.selected_lang = msg.content.replace(this.config.prefix).split()[1].trim().toLowerCase();
 }
