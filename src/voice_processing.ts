@@ -1,99 +1,111 @@
-import {Config} from "./settings";
+import {Config, Settings} from "./settings";
 
 const log = require('loglevel');
 const fs = require('fs');
 const vosk = require('vosk');
-import {VoiceConnection} from "@discordjs/voice";
+const prism = require('prism-media');
+import {VoiceConnection, AudioReceiveStream} from "@discordjs/voice";
+import {TextChannel, User, Client} from 'discord.js';
 
 const voskFolder = "./vosk_models";
-let config: Config;
 
 export class VoiceProcessor {
-    private recognizers: any[];
+    private speechModel: any;
+    private config: Config
 
     constructor() {
         let files: string[];
-        this.recognizers = [];
-        
+        this.config = new Settings().config
         vosk.setLogLevel(-1);
         // MODELS: https://alphacephei.com/vosk/models
-        log.info(`reading language folders from ${fs.realpathSync(voskFolder)}`)
-        files = fs.readdirSync(voskFolder);
-
-        log.info(`loading language recognizers`)
-        files.forEach(file => {
-            this.recognizers.push({
-                file: new vosk.Recognizer({
-                    model: new vosk.Model(`${voskFolder}/${file}`),
-                    sampleRate: 48000
-                })
-            });
-        });
+        log.info(`loading language models`)
+        this.speechModel = new vosk.Model(`${voskFolder}/${this.config.language}`)
 
         log.info(`language recognizers loaded`)
         // download new models if you need
         // dev reference: https://github.com/alphacep/vosk-api/blob/master/nodejs/index.js
     }
 
-    async transcribe(buffer) {
-        this.recognizers[config.language].acceptWaveform(buffer);
-        let ret = this.recognizers[config.language].result().text;
-        log.info('vosk:', ret)
-        return ret;
+    getDisplayName(userId: string, user?: User) {
+        return user ? `${user.username}#${user.discriminator}` : userId;
     }
 
-    voiceConnection_hook(voiceConnection: VoiceConnection, textChannel) {
+    async transcribeAsync(buffer): Promise<string> {
+        let recognizer = new vosk.Recognizer({
+                model: this.speechModel,
+                sampleRate: 48000
+            }
+        )
+        await recognizer.acceptWaveformAsync(buffer);
+
+        let result = recognizer.finalResult().text;
+        recognizer.free()
+        log.info(result)
+        return result;
+    }
+
+    async voiceConnection_hook(voiceConnection: VoiceConnection, textChannel: TextChannel, discordClient: Client) {
         try {
-            voiceConnection.receiver.subscriptions.forEach((audioStream, userssrc) => {
-                let userId = userssrc
-                log.info(`I'm listening to ${userId}`)
-                audioStream.on('error', (e) => {
+
+            const receiver = voiceConnection.receiver;
+            const userVoiceInfo = new Map<string, {
+                buffer: Buffer[],
+                opusStream: AudioReceiveStream,
+                decoder: any
+            }>();
+
+            receiver.speaking.on('start', async (userId) => {
+                log.info(`Listening to ${this.getDisplayName(userId, discordClient?.users?.cache?.get(userId))}`)
+
+                let opusStream: AudioReceiveStream = voiceConnection.receiver.subscribe(userId);
+
+                let decoder = new prism.opus.Decoder({frameSize: 1920, channels: 1, rate: 48000});
+                opusStream.pipe(decoder);
+
+                userVoiceInfo.set(userId, {
+                    buffer: [],
+                    opusStream: opusStream,
+                    decoder: decoder
+                })
+
+                decoder.on('error', (e) => {
                     log.error('audioStream: ' + e)
                 });
-                let buffer: any =  [];
-                audioStream.on('data', (data) => {
-                    buffer.push(data)
-                    voiceConnection.playOpusPacket(data)
-                })
-                audioStream.on('end', async () => {
-                    log.info(`Stoped listening to ${userId}`)
-                    buffer = Buffer.concat(buffer)
-                    const duration = buffer.length / 48000 / 4;
-                    log.info("duration: " + duration)
-
-                    if (duration < 1.0 || duration > 19) { // 20 seconds max dur
-                        log.info("TOO SHORT / TOO LONG; SKPPING")
-                        return;
-                    }
-
-                    try {
-                        let new_buffer = await stereo_to_mono(buffer)
-                        let out = await this.transcribe(new_buffer);
-                        if (out && out.length) {
-                            textChannel.send(userId + ': ' + out)
-                        }
-                    } catch (e) {
-                        log.error('tmpraw rename: ' + e)
-                    }
-
-
+                decoder.on('data', (data) => {
+                    userVoiceInfo.get(userId).buffer.push(data)
                 })
             })
+
+            receiver.speaking.on('end', async (userId) => {
+                if (userVoiceInfo.get(userId) === null)
+                    return
+
+                let userName = this.getDisplayName(userId, discordClient?.users?.cache?.get(userId))
+                log.info(`Stoped listening to ${userName}`)
+                userVoiceInfo.get(userId).opusStream.destroy()
+                userVoiceInfo.get(userId).decoder.destroy()
+
+                let buffer = Buffer.concat(userVoiceInfo.get(userId).buffer)
+                let duration = buffer.length / 48000
+                log.info("duration: " + duration)
+                if (duration < 1.0 || duration > 19) {
+                    log.info("TOO SHORT / TOO LONG; SKIPPING")
+                    return;
+                }
+
+                try {
+                    let out = await this.transcribeAsync(buffer);
+                    if (out && out.length) {
+                        await textChannel.send(userName + ' сказал(а): ' + out)
+                    }
+                } catch (e) {
+                    log.error('tmpraw rename: ' + e)
+                }
+            })
+
         } catch (e) {
             log.error(e);
         }
-    }
-}
-
-async function stereo_to_mono(input): Promise<Buffer> {
-    try {
-        const data = new Int16Array(input)
-        const ndata = data.filter((el, idx) => idx % 2);
-        return Buffer.from(ndata);
-    } catch (e) {
-        log.error(e)
-        log.error('convert_audio: ' + e)
-        throw e;
     }
 }
 

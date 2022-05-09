@@ -1,11 +1,10 @@
 import log from "loglevel";
 
-const util = require('util');
 const Discord = require('discord.js');
 
 const {Settings} = require('./settings');
 const {VoiceProcessor} = require('./voice_processing');
-const Commands = require('./commands')
+const {Commands} = require('./commands')
 
 const discordClient = new Discord.Client({
     intents: [
@@ -21,6 +20,7 @@ const discordClient = new Discord.Client({
 });
 
 const config = new Settings().config;
+const commands = new Commands()
 
 function _init() {
     log.setLevel(log.levels.INFO)
@@ -37,11 +37,9 @@ function _init() {
     discordClient.on('ready', () => {
         log.info(`Logged in as ${discordClient.user.tag}!`)
     });
-
-    Commands.guildMap = new Map();
-    Commands.discordClient = discordClient;
-    Commands.config = config;
-    Commands.voiceProcessor = voiceProcessor;
+    commands.discordClient = discordClient
+    commands.config = config
+    commands.voiceProcessor = voiceProcessor
     
     listenMessages()
 
@@ -55,9 +53,9 @@ function listenMessages() {
             let command: string = msg.content.replace(config.prefix, '').split()[0].trim().toLowerCase();
             log.info(`recieved message from channel: '${msg.guild.name}' with command: '${command}'`)
 
-            if (Commands[command]) {
+            if (commands[command]) {
                 log.info(`found command: ${command}`)
-                Commands[command](msg).catch(log.error);
+                commands[command](msg).catch(log.error);
             }
 
         } catch (e) {
