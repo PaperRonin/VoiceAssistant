@@ -1,24 +1,6 @@
 {
   "discord_token": "OTA5MzkxMzU4MTAyNDk5MzI4.YZDmsw.hTrjXhWa0h-0tTty9OXWUk_Q3t8",
   "app_id": "909391358102499328",
-  "text": {
-    "greetings": "hi!"
-  },
-
-  "prefix": "=",
   "language": "ruSmall",
-  "commands": [
-    {
-      "name": "ping",
-      "function": "ping",
-      "callName": "ping",
-      "voiceCallName": "ping"
-    },
-    {
-      "name": "",
-      "function": "",
-      "callName": "",
-      "voiceCallName": ""
-    }
-  ]
+  "bot_name": "наутилус"
 }

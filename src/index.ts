@@ -39,8 +39,9 @@ function _init() {
     discordClient.on('ready', () => {
         log.info(`Logged in as ${discordClient.user.tag}!`)
         deployCommands(discordClient)
-    });
-    
+        fetchAllGuildMembers(discordClient)
+    })
+    discordClient.voiceProcessor = voiceProcessor
     commands.discordClient = discordClient
     commands.config = config
     commands.voiceProcessor = voiceProcessor
@@ -64,7 +65,7 @@ function listenMessages() {
 
         } catch (e) {
             log.error('discordClient message: ' + e)
-            msg.reply('Error: Something went wrong, try again or contact the developers if this keeps happening.');
+            return  msg.reply('Error: Something went wrong, try again or contact the developers if this keeps happening.');
         }
     })
 
@@ -76,12 +77,18 @@ function listenMessages() {
         if (!command) return;
 
         try {
-            await command.execute(interaction);
+            return command.execute(discordClient, interaction);
         } catch (error) {
             log.error(error);
-            await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
+            return  interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
         }
     });
+}
+
+function fetchAllGuildMembers(discordClient) {
+    discordClient.guilds.cache.forEach(guild => {
+        guild.members.fetch();
+    })
 }
 
 _init()

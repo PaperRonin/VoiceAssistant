@@ -1,10 +1,11 @@
 {
   "dependencies": {
+    "discord.js": "~13.6.0",
     "@discordjs/opus": "^0.5.3",
     "@discordjs/voice": "^0.9.0",
+    "@discordjs/rest": "0.4.1",
     "@mapbox/node-pre-gyp": "^1.0.8",
     "axios": "^0.24.0",
-    "discord.js": "^13.5.0",
     "gulp": "^4.0.2",
     "gulp-shell": "^0.8.0",
     "gulp-typescript": "5.0.1",
@@ -18,9 +19,7 @@
     "ts-node-dev": "^1.1.8",
     "underscore": "^1.13.2",
     "vosk": "^0.3.32",
-    "prism-media": "^1.3.2",
-    "@discordjs/builders": "^0.13.0",
-    "@discordjs/rest": "^0.4.1"
+    "prism-media": "^1.3.2"
   },
   "description": "",
   "main": "dist/index.js",
@@ -33,8 +32,5 @@
   "types": "dist/index.d.ts",
   "files": [
     "/dist"
-  ],
-  "devDependencies": {
-    "gulp-clean": "^0.4.0"
-  }
+  ]
 }

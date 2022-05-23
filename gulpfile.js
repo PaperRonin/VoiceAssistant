@@ -1,6 +1,5 @@
 const gulp = require('gulp')
 const ts = require("gulp-typescript")
-const gulpClean = require('gulp-clean')
 const shell = require('gulp-shell')
 
 const paths = {
@@ -15,11 +14,6 @@ const paths = {
 };
 
 const tsProject = ts.createProject(paths.tsConfig.src)
-
-function clean() {
-    return gulp.src(paths.config.dest, {read: false})
-        .pipe(gulpClean());
-}
 
 function copySettings() {
     return gulp.src(paths.config.src)

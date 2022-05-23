@@ -1,11 +1,11 @@
 import {Config, Settings} from "./settings";
-
+import {replaceWordsWithNumbers} from "./utils";
 const log = require('loglevel');
 const fs = require('fs');
 const vosk = require('vosk');
 const prism = require('prism-media');
 import {VoiceConnection, AudioReceiveStream} from "@discordjs/voice";
-import {TextChannel, User, Client} from 'discord.js';
+import {TextChannel, User, Client, Collection} from 'discord.js';
 
 const voskFolder = "./vosk_models";
 
@@ -42,8 +42,6 @@ export class VoiceProcessor {
         let result = recognizer.finalResult().text;
         //Освобождение памяти
         recognizer.free()
-        //Логирование результата
-        log.info(result)
         return result;
     }
 
@@ -99,16 +97,32 @@ export class VoiceProcessor {
                 try {
                     let out = await this.transcribeAsync(buffer);
                     if (out && out.length) {
-                        await textChannel.send(userName + ' сказал(а): ' + out)
+                        //Логирование результата
+                        log.info(userName + ' сказал(а): ' + out)
+                        await this.process(voiceConnection, textChannel, discordClient, out)
                     }
                 } catch (e) {
-                    log.error('tmpraw rename: ' + e)
+                    log.error('Ошбибка обработки голоса: ' + e)
                 }
             })
 
         } catch (e) {
             log.error(e);
         }
+    }
+
+    async process(voiceConnection: VoiceConnection, textChannel: TextChannel, discordClient, text: string) {
+        let botCallIndex = text.indexOf(this.config.bot_name)
+        if (botCallIndex == -1) return
+
+        let textWithCommand: string = text.slice(botCallIndex)
+        
+        discordClient.voiceCommands.forEach((command, key) => {
+            if (textWithCommand.includes(key)) {
+                
+                return command.executeVoice(voiceConnection, textChannel, discordClient, replaceWordsWithNumbers(textWithCommand))
+            }
+        })
     }
 }
 

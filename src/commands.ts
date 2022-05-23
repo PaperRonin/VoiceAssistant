@@ -11,25 +11,6 @@ export class Commands {
     public config: Config;
     public voiceProcessor: VoiceProcessor;
 
-
-    public async help(msg) {
-        let properties = new Array<string>()
-        let currentObj = this
-        do {
-            Object.getOwnPropertyNames(currentObj).map(item => properties.push(item))
-        } while ((currentObj = Object.getPrototypeOf(currentObj)))
-        
-        let out = '**COMMANDS:**\n'
-        out += '```'
-        properties.filter((item: any) => {
-            return typeof currentObj[item] === 'function';
-        }).forEach(item => {
-            out += `${item}\n`;
-        });
-        out += '```'
-        await msg.reply(out);
-    }
-
     public async join(msg) {
         try {
             if (!msg.member.voice.channel) {

@@ -11,6 +11,7 @@ export function deployCommands(discordClient){
     log.info(`Обновляю команды на серверах`)
     const config = new Settings().config;
     discordClient.commands = new Collection()
+    discordClient.voiceCommands = new Collection()
     const commands = [];
     const commandsPath = path.join(__dirname, 'commands');
     const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
@@ -18,19 +19,19 @@ export function deployCommands(discordClient){
     for (const file of commandFiles) {
         const filePath = path.join(commandsPath, file);
         const command = require(filePath);
-        discordClient.commands.set(command.data.name, command);
+        if (command.hasOwnProperty('executeVoice'))
+        {
+            discordClient.voiceCommands.set(command.voiceChannelName || command.data.name, command)
+        }
+        discordClient.commands.set(command.data.name, command)
         commands.push(command.data.toJSON());
     }
-
+    
     const rest = new REST({ version: '9' }).setToken(config.discord_token);
 
     discordClient.guilds.cache.forEach(guild => {
-        log.info(config.app_id)
-        log.info(guild.id)
         rest.put(Routes.applicationGuildCommands(config.app_id, guild.id), { body: commands })
             .then(() => log.info(`Updated commands in guild ${guild.name}#${guild.id}`))
-            .catch(log.error);
-
-        
+            .catch(log.error)
     })
 }
