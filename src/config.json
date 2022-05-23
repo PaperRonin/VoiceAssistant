@@ -1,11 +1,12 @@
 {
   "discord_token": "OTA5MzkxMzU4MTAyNDk5MzI4.YZDmsw.hTrjXhWa0h-0tTty9OXWUk_Q3t8",
+  "app_id": "909391358102499328",
   "text": {
     "greetings": "hi!"
   },
 
   "prefix": "=",
-  "language": "ru",
+  "language": "ruSmall",
   "commands": [
     {
       "name": "ping",

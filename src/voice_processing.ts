@@ -10,20 +10,19 @@ import {TextChannel, User, Client} from 'discord.js';
 const voskFolder = "./vosk_models";
 
 export class VoiceProcessor {
-    private speechModel: any;
+    private readonly speechModel: any;
     private config: Config
 
     constructor() {
-        let files: string[];
+        // Загружаем насторойки
         this.config = new Settings().config
+        // Убираем логирование распознания речи
         vosk.setLogLevel(-1);
-        // MODELS: https://alphacephei.com/vosk/models
-        log.info(`loading language models`)
+        // Модели: https://alphacephei.com/vosk/models
+        log.info(`Загружаю речевую модель`)
         this.speechModel = new vosk.Model(`${voskFolder}/${this.config.language}`)
-
-        log.info(`language recognizers loaded`)
-        // download new models if you need
-        // dev reference: https://github.com/alphacep/vosk-api/blob/master/nodejs/index.js
+        log.info(`Модель загружена`)
+        // Документиация: https://github.com/alphacep/vosk-api/blob/master/nodejs/index.js
     }
 
     getDisplayName(userId: string, user?: User) {
@@ -31,15 +30,19 @@ export class VoiceProcessor {
     }
 
     async transcribeAsync(buffer): Promise<string> {
+        //Инициализация обработчика речи с загруженным ранее модулем распознания речи
         let recognizer = new vosk.Recognizer({
                 model: this.speechModel,
                 sampleRate: 48000
             }
         )
+        //Обработчика аудиозаписи из буфера 
         await recognizer.acceptWaveformAsync(buffer);
-
+        //Получение результата
         let result = recognizer.finalResult().text;
+        //Освобождение памяти
         recognizer.free()
+        //Логирование результата
         log.info(result)
         return result;
     }

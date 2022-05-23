@@ -1,4 +1,6 @@
 import log from "loglevel";
+import {deployCommands} from "./deploy-commands";
+import {Interaction} from "discord.js";
 
 const Discord = require('discord.js');
 
@@ -36,7 +38,9 @@ function _init() {
 
     discordClient.on('ready', () => {
         log.info(`Logged in as ${discordClient.user.tag}!`)
+        deployCommands(discordClient)
     });
+    
     commands.discordClient = discordClient
     commands.config = config
     commands.voiceProcessor = voiceProcessor
@@ -63,6 +67,21 @@ function listenMessages() {
             msg.reply('Error: Something went wrong, try again or contact the developers if this keeps happening.');
         }
     })
+
+    discordClient.on('interactionCreate', async( interaction : Interaction) => {
+        if (!interaction.isCommand()) return;
+
+        const command = discordClient.commands.get(interaction.commandName);
+
+        if (!command) return;
+
+        try {
+            await command.execute(interaction);
+        } catch (error) {
+            log.error(error);
+            await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
+        }
+    });
 }
 
 _init()

@@ -2,6 +2,7 @@ const SETTINGS_FILE = './config.json';
 
 export interface Config {
     discord_token: string;
+    app_id: string;
     text?: any;
     prefix: string;
     language: string;

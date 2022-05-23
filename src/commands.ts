@@ -89,8 +89,4 @@ export class Commands {
         voiceChannel.disconnect()
         msg.reply("Disconnected.")
     }
-
-    public async ping(msg) {
-        msg.reply('pong')
-    }
 }
