@@ -22,13 +22,19 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
 
-    - name: Load language models
-      uses: schmiddim/action-wget-unzip@v2
-      with:
-        url: https://alphacephei.com/vosk/models/vosk-model-small-ru-0.22.zip
-        destination: vosk_models
-
     - name: Build
       run: |
         npm install
         gulp
+        
+    - name: Load language models
+      uses: schmiddim/action-wget-unzip@v2
+      with:
+        url: https://alphacephei.com/vosk/models/vosk-model-small-ru-0.22.zip
+        destination: dist/vosk_models/ruSmall
+
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v3.1.0
+      with:
+        name: voice-recognition-bot
+        path: ~/work/VoiceAssistant/VoiceAssistant/dist
