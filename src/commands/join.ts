@@ -7,19 +7,22 @@ import log from "loglevel"
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('join')
-        .setDescription('Join voice channel.'),
+        .setDescription('Join voice channel.')
+        .setNameLocalization("ru", "зайди")
+        .setDescriptionLocalization("ru", "Я зайду в текущий голосовой канал пользователя и начну слушать команды"),
+    description: 'Я зайду в текущий голосовой канал пользователя и начну слушать команды',
     async execute(discordClient, interaction : CommandInteraction) {
         try {
             const member = interaction.guild.members.cache.get(interaction.member.user.id)
             const voiceChannel = member.voice.channel;
             
             if (!voiceChannel) {
-                return interaction.reply('Error: please join a voice channel first.')
+                return interaction.reply('Ошибка: пользователь не находится в голосовом канале.')
             }
             let voiceConnection: VoiceConnection = discordjsVoice.getVoiceConnection(voiceChannel.guild.id);
 
             if (voiceConnection && voiceConnection.joinConfig.channelId === member.voice.channelId) {
-                return interaction.reply('Already connected')
+                return interaction.reply('Ошибка: уже присоединился')
             }
 
             voiceConnection = discordjsVoice.joinVoiceChannel({
@@ -40,19 +43,17 @@ module.exports = {
                         discordjsVoice.entersState(voiceConnection, discordjsVoice.VoiceConnectionStatus.Signalling, 5_000),
                         discordjsVoice.entersState(voiceConnection, discordjsVoice.VoiceConnectionStatus.Connecting, 5_000),
                     ]);
-                    // Seems to be reconnecting to a new channel - ignore disconnect
                 } catch (error) {
-                    // Seems to be a real disconnect which SHOULDN'T be recovered from
                     voiceConnection.destroy();
                 }
             })
             
-            await interaction.reply('connected!')
+            await interaction.reply('Присоединился!')
             
             return discordClient.voiceProcessor.voiceConnection_hook(voiceConnection, interaction.channel as TextChannel, discordClient)
         } catch (e) {
             log.error('connect: ' + e)
-            return interaction.channel.send('Error: unable to join your voice channel.');
+            return interaction.channel.send('Ошибка: не удалось войти в голосовой канал.');
         }
     },
 };

@@ -6,8 +6,11 @@ import * as discordjsVoice from "@discordjs/voice";
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('leave')
-        .setDescription('leave current voice channel'),
+        .setDescription('leave current voice channel')
+        .setNameLocalization("ru", "выйди")
+        .setDescriptionLocalization("ru", "Я выйду из голосового канала"),
     voiceChannelName: 'выйди',
+    description: 'Я выйду из голосового канала',
     async execute(discordClient: Client, interaction: CommandInteraction) {
         let voiceChannel: VoiceConnection = discordjsVoice.getVoiceConnection(interaction.guild.id);
         if (!voiceChannel) {
@@ -17,8 +20,8 @@ module.exports = {
         voiceChannel.disconnect()
         return interaction.reply({content: `Вышел из голосового канала`})
     },
-    async executeVoice(voiceConnection: VoiceConnection, textChannel: TextChannel, discordClient, text: string) {
+    async executeVoice(userName : string, voiceConnection: VoiceConnection, textChannel: TextChannel, discordClient, text: string) {
         voiceConnection.disconnect()
-        return textChannel.send({content: `Вышел из голосового канала`})
+        return textChannel.send(`Вышел из голосового канала`)
     }
 };

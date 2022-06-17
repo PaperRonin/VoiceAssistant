@@ -28,10 +28,10 @@ export function deployCommands(discordClient){
     }
     
     const rest = new REST({ version: '9' }).setToken(config.discord_token);
-
+    
     discordClient.guilds.cache.forEach(guild => {
         rest.put(Routes.applicationGuildCommands(config.app_id, guild.id), { body: commands })
-            .then(() => log.info(`Updated commands in guild ${guild.name}#${guild.id}`))
+            .then(() => log.info(`Обновил команды для сервера ${guild.name}#${guild.id}`))
             .catch(log.error)
     })
 }

@@ -1,5 +1,6 @@
 import {Config, Settings} from "./settings";
 import {replaceWordsWithNumbers} from "./utils";
+
 const log = require('loglevel');
 const fs = require('fs');
 const vosk = require('vosk');
@@ -56,7 +57,7 @@ export class VoiceProcessor {
             }>();
 
             receiver.speaking.on('start', async (userId) => {
-                log.info(`Listening to ${this.getDisplayName(userId, discordClient?.users?.cache?.get(userId))}`)
+                log.info(`Слушаю ${this.getDisplayName(userId, discordClient?.users?.cache?.get(userId))}`)
 
                 let opusStream: AudioReceiveStream = voiceConnection.receiver.subscribe(userId);
 
@@ -82,45 +83,53 @@ export class VoiceProcessor {
                     return
 
                 let userName = this.getDisplayName(userId, discordClient?.users?.cache?.get(userId))
-                log.info(`Stoped listening to ${userName}`)
+                log.info(`Прекратил слушать ${userName}`)
                 userVoiceInfo.get(userId).opusStream.destroy()
                 userVoiceInfo.get(userId).decoder.destroy()
 
                 let buffer = Buffer.concat(userVoiceInfo.get(userId).buffer)
                 let duration = buffer.length / 48000
-                log.info("duration: " + duration)
+                log.info("Длительность записи: " + duration)
                 if (duration < 1.0 || duration > 19) {
-                    log.info("TOO SHORT / TOO LONG; SKIPPING")
+                    log.info("Слишком короткая / длинная запись; пропускаю")
                     return;
                 }
 
                 try {
+                    let timer = new Date().valueOf()
                     let out = await this.transcribeAsync(buffer);
+                    log.info(`timer: ${(new Date().valueOf() - timer) / (duration * 1000)}`)
                     if (out && out.length) {
                         //Логирование результата
                         log.info(userName + ' сказал(а): ' + out)
-                        await this.process(voiceConnection, textChannel, discordClient, out)
+                        await this.process(userName, voiceConnection, textChannel, discordClient, out)
                     }
                 } catch (e) {
-                    log.error('Ошбибка обработки голоса: ' + e)
+                    log.error('Ошибка обработки голоса: ' + e)
                 }
             })
 
         } catch (e) {
-            log.error(e);
+            log.error('Ошибка работы с голосовым каналом : ' + e);
         }
     }
 
-    async process(voiceConnection: VoiceConnection, textChannel: TextChannel, discordClient, text: string) {
+    async process(userName: string, voiceConnection: VoiceConnection, textChannel: TextChannel, discordClient, text: string) {
         let botCallIndex = text.indexOf(this.config.bot_name)
         if (botCallIndex == -1) return
 
         let textWithCommand: string = text.slice(botCallIndex)
-        
+
         discordClient.voiceCommands.forEach((command, key) => {
-            if (textWithCommand.includes(key)) {
-                
-                return command.executeVoice(voiceConnection, textChannel, discordClient, replaceWordsWithNumbers(textWithCommand))
+            let commandIndex = textWithCommand.indexOf(key)
+            if (commandIndex != -1) {
+                log.info(`Распознана команда: ${key}`)
+                return command.executeVoice(
+                    userName,
+                    voiceConnection,
+                    textChannel,
+                    discordClient,
+                    replaceWordsWithNumbers(textWithCommand.slice(commandIndex + key.length)))
             }
         })
     }

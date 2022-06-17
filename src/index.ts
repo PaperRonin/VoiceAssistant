@@ -33,11 +33,11 @@ function _init() {
     });
     let voiceProcessor = new VoiceProcessor();
 
-    log.info(`loging in...`)
+    log.info(`Авторизация бота...`)
     discordClient.login(config.discord_token).catch(log.error);
 
     discordClient.on('ready', () => {
-        log.info(`Logged in as ${discordClient.user.tag}!`)
+        log.info(`Авторизирован как ${discordClient.user.tag}!`)
         deployCommands(discordClient)
         fetchAllGuildMembers(discordClient)
     })
