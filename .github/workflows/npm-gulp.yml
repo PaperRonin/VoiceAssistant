@@ -24,6 +24,9 @@ jobs:
 
     - name: Build
       run: |
+        mkdir -p dist/vosk_models/ruSmall
+        cp package.json dist/
+        cp package-lock.json dist/
         npm install
         gulp
         
